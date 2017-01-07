@@ -34,6 +34,7 @@ router.post('/regin', function(req, res) {
 //验证
 router.get('/reginyes', function(req, res) {
     var username = req.query.username;
+    console.log(username)
     userService.validateUsername(username, function(data) {
         if (data.length > 0) {
             res.send({ mes: 1 });

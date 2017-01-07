@@ -9,6 +9,8 @@
                 class="input"
                 v-model="username"
                 placeholder="请输入用户名"
+                on-change="this.handleChange(this, 'username')"
+                maxlength="12"
                 id="username">
         </div>
 
@@ -19,13 +21,14 @@
                 class="input"
                 v-model="password"
                 placeholder="请输入密码"
-                max="20"
+                on-change="this.handleChange(this, 'username')"
+                maxlength="12"
                 id="password">
         </div>
-
-
+        <!--<div v-if="errorMsg" class="form-group">
+            <span class="text-red" v-text="errorMsg"></span>
+        </div>-->
           <div class="btnbox">
-              
             <input 
                 type="submit"
                 class="btn"
@@ -43,6 +46,7 @@
 </template>
 
 <script>
+    // 验证全部删完了,准备vuex的时候学习,regin还有
     export default {
         data() {
             return {
@@ -53,7 +57,7 @@
         methods: {
             toRegin() {
                 const _self = this;
-                _self.$router.push('/index/regin');
+                _self.$router.push('/regin');
             },
             Login() {
                 const _self = this;

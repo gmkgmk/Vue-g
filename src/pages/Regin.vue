@@ -5,17 +5,17 @@
         <article class="username inputbox">
             <label for="username">用户名:</label>
             <input 
-                type="text"
+                type="data"
                 class="input"
                 placeholder="请输入用户名"
-                id="username"
-                min="6"
-                required 
-                v-model.trim="userInfo.username"
+                maxlength="12"
+                v-model="userInfo.username"
                 autofocus 
                 autocomplete="off"
-                @blur="usernameCanEdit()"
-                >
+                @keyup.enter="regin()"
+                @blur="blurMethod('username')">
+
+                <span v-show="message.username" class="text-red" v-text="message.username"></span>
         </article>
 
         <article class="password inputbox">
@@ -23,13 +23,14 @@
             <input 
                 type="password"
                 class="input"
-                v-model.trim="userInfo.password"
+                v-model="userInfo.password"
                 placeholder="请输入密码"
-                min="6"
-                max="20"
-                id="password"
-                required 
-                 autocomplete="new-password">
+                maxlength="12"
+                @blur="blurMethod('password')"
+                @keyup.enter="regin()"
+                autocomplete="new-password">
+                
+                <span v-show="message.password" class="text-red" v-text="message.password"></span>
         </article>
 
         <article class="reppassword inputbox">
@@ -37,109 +38,155 @@
             <input 
                 type="password"
                 class="input"
-                v-model.trim="userInfo.reppassword"
+                v-model="userInfo.reppassword"
                 placeholder="请再次输入密码"
-                min="6"
-                max="20"
-                required 
-                 autocomplete="new-password"
-                @blur="canEdit()"
-                id="reppassword">
-                <span></span>
-        </article>
+                maxlength="12"
+                autocomplete="new-password"
+                :disabled="!userInfo.password.trim()"
+                @keyup.enter="regin()"
+                @blur="blurMethod('password')">
 
+                <span v-show="message.reppassword" class="text-red" v-text="message.reppassword"></span>
+        </article>
           <article class="btnbox">
             <input 
                 type="button"
                 class="btn"
-                id="submitBtn"
                 value="提交"
-                disabled="disabled" 
-                ref="isSubmit"
                 @click="regin()">
             <input 
                 type="button"
                 class="btn clear"
-                id="clearBtn"
                 value="重置"
                 @click="clear()">
         </article>
         </form>
+        <small  >已有账号？<a class="toLogin" @click="toLogin()">直接登录</a></small>
     </section>
 </template>
 
 <script>
+    /*
+     *简单的验证消息
+     */
     export default {
         data() {
             return {
+                message: {
+                    password: '',
+                    reppassword: '',
+                    username: ''
+                },
                 userInfo: {
                     password: '',
                     reppassword: '',
                     username: ''
                 },
+                userFlag: false,
+                userPsw: false,
+                reppswFlag: false,
                 apiUrl: 'http://localhost:3005',
             }
         },
-        create: {
-
-        },
-        computed: {},
         methods: {
+            // 鼠标移开数据
+            blurMethod(currentObj) {
+                const _self = this
+                switch (currentObj) {
+                    case 'username':
+                        let formDataCity = _self.userInfo.username;
+                        if (formDataCity.length < 6 || formDataCity.length > 12) {
+                            _self.message.username = "用户名格式不正确,长度应该大于6小于12"
+                            _self.userFlag = false
+                        } else {
+                            _self.message.username = false
+                            _self.usernameCanEdit()
+                        };
+                        break;
+                    case 'password':
+                        const password = _self.userInfo.password
+                        const reppassword = _self.userInfo.reppassword
+                        if (password.length < 6 || password.length > 12) {
+                            _self.message.password = "密码格式不正确,长度应该大于6小于12"
+                            _self.userPsw = false
+                        } else {
+                            _self.message.password = false
+                            _self.userPsw = true
+                            if (reppassword !== password) {
+                                _self.message.reppassword = '两次密码输入不一致'
+                                _self.reppswFlag = false
+                            } else {
+                                _self.message.reppassword = false
+                                _self.reppswFlag = true
+                            }
+                        };
+                        break;
+
+                }
+            },
             // 注册按钮
             regin() {
-                var _self = this
-                var param = {
+                const _self = this
+                const param = {
                     username: _self.userInfo.username,
                     password: _self.userInfo.password
                 }
-                _self.$http.post(_self.apiUrl + '/user/regin', param).then(function(res) {
-                    if (res.body === "成功") {
-                        alert('注册成功，请登陆！')
-                        _self.$router.push('/index/login');
-                        _self.clear()
+                if (_self.reppswFlag && _self.userFlag && _self.userPsw) {
+                    // ajax请求
+                    _self.$http.post(_self.apiUrl + '/user/regin', param).then(function(res) {
+                        if (res.body === "成功") {
+                            alert('注册成功，请登陆！')
+                            _self.toLogin()
+                            _self.clear()
+                        } else {
+                            alert("注册失败,请确认")
+                        }
+                    }, function(error) {
+                        console.log(error);
+                    })
+                } else {
+                    alert("请确认信息后再次填入")
+                }
+            },
+            // 验证用户是否重复
+            usernameCanEdit: function() {
+                const _self = this
+                const param = '?username=' + _self.userInfo.username
+                _self.$http.get(_self.apiUrl + '/user/reginyes' + param).then(function(res) {
+                    if (res.body.mes == "1") {
+                        _self.message.username = "*该用户名已被注册"
+                        _self.userFlag = false
                     } else {
-                        alert("注册失败,请确认")
+                        _self.message.username = false
+                        _self.userFlag = true
                     }
                 }, function(error) {
                     console.log(error);
                 })
             },
+            // 去登录按钮
+            toLogin() {
+                const _self = this
+                _self.$router.push('/login');
+            },
             // 清除按钮
             clear() {
-                var _self = this
+                const _self = this
                 _self.userInfo.username = "";
                 _self.userInfo.password = "";
                 _self.userInfo.reppassword = "";
             },
-            // 判断两次密码是否一致
-            canEdit: function() {
-                var _self = this
-                if (_self.userInfo.password === _self.userInfo.reppassword) {
-                    _self.$refs.isSubmit.removeAttribute('disabled')
-                } else {
-                    console.log('2次密码不一致')
-                }
-            },
-            usernameCanEdit: function() {
-                var _self = this
-                var param = {
-                    username: _self.userInfo.username
-                }
-                _self.$http.get(_self.apiUrl + '/user/reginyes', param).then(function(res) {
-                    if (res.body.mes === "0") {
-                        _self.$refs.isSubmit.removeAttribute('disabled')
-                    } else {
-                        console.log(1)
-                    }
-                }, function(error) {
-                    console.log(error);
-                })
-            },
-        },
-        watch: {
-            function() {
-                console.log()
-            }
         }
     }
 </script>
+<style>
+    .toLogin {
+        cursor: pointer;
+        color: rgba(0, 0, 0, .4)
+    }
+    
+    .text-red {
+        color: red;
+        float: right;
+    }
+</style>
